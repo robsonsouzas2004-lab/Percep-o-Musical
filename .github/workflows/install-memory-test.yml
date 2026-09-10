@@ -1,0 +1,35 @@
+name: Integrar teste de memorizacao
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  integrate:
+    if: ${{ !contains(github.event.head_commit.message, 'Integrar teste de memorizacao') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Integrar script
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="memory-test.js"></script>'
+          if tag not in s:
+              if '</body>' not in s:
+                  raise SystemExit('Tag </body> nao encontrada')
+              s=s.replace('</body>',tag+'</body>',1)
+              p.write_text(s,encoding='utf-8')
+          else:
+              print('Script ja integrado')
+          PY
+      - name: Commit e limpar workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git rm .github/workflows/install-memory-test.yml
+          git commit -m 'Integrar teste de memorizacao'
+          git push
