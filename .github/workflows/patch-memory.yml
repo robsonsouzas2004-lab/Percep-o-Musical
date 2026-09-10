@@ -1,10 +1,12 @@
 name: Patch memory test
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
 permissions:
   contents: write
 jobs:
   patch:
+    if: ${{ !contains(github.event.head_commit.message, 'Aumenta teste de memorizacao para 12 notas') && !contains(github.event.head_commit.message, 'Remove workflow temporario de patch') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -12,13 +14,21 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-          old = 'const opts=[...Array(6).keys()]'
-          new = 'const opts=[...Array(12).keys()]'
-          if old not in s:
-              raise SystemExit('Target code not found; no changes made.')
-          s = s.replace(old, new, 1)
+          patterns = [
+              r'const\s+opts\s*=\s*\[\.\.\.Array\(\d+\)\.keys\(\)\]',
+              r'const\s+opts\s*=\s*\[\.\.\.Array\(\d+\)\.keys\(\)\s*\]'
+          ]
+          for pat in patterns:
+              if re.search(pat, s):
+                  s2 = re.sub(pat, 'const opts=[...Array(12).keys()]', s, count=1)
+                  if s2 != s:
+                      s = s2
+                      break
+          else:
+              raise SystemExit('Nao encontrei a lista de opcoes do teste de memorizacao.')
           p.write_text(s, encoding='utf-8')
           PY
       - name: Commit change
@@ -26,7 +36,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'Aumenta teste de memorização para 12 notas'
+          git commit -m 'Aumenta teste de memorizacao para 12 notas'
           git push
       - name: Remove temporary workflow
         if: success()
