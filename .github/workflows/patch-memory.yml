@@ -1,0 +1,36 @@
+name: Patch memory test
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch 12 note options
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old = 'const opts=[...Array(6).keys()]'
+          new = 'const opts=[...Array(12).keys()]'
+          if old not in s:
+              raise SystemExit('Target code not found; no changes made.')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit change
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Aumenta teste de memorização para 12 notas'
+          git push
+      - name: Remove temporary workflow
+        if: success()
+        run: |
+          git rm .github/workflows/patch-memory.yml
+          git commit -m 'Remove workflow temporario de patch'
+          git push
