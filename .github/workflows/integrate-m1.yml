@@ -1,0 +1,34 @@
+name: Integrar Módulo 1
+on:
+  push:
+    paths:
+      - 'module1-training.js'
+      - 'module1-gate.js'
+      - '.github/workflows/integrate-m1.yml'
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Integrar scripts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          anchor='<script src="course-structure.js"></script>'
+          tags='<script src="module1-training.js"></script><script src="module1-gate.js"></script>'
+          if 'module1-training.js' not in s:
+              s=s.replace(anchor,tags+anchor)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit e remover workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git rm .github/workflows/integrate-m1.yml
+          git commit -m 'Integra treino progressivo do Modulo 1' || exit 0
+          git push
